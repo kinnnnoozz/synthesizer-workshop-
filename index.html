@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Synthesizer Workshop — Photo Archive</title>
+<style>
+:root{--bg:#0a0a0a;--panel:#111;--text:#f5f5f5;--muted:#9a9a9a;--line:rgba(255,255,255,.14)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif;height:100%}
+body{overflow:hidden}
+button{font:inherit}
+.app{height:100dvh;display:grid;grid-template-rows:auto 1fr auto}
+header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(10,10,10,.92);backdrop-filter:blur(12px);z-index:5}
+.brand{display:flex;gap:14px;align-items:baseline;min-width:0}
+.brand h1{font-size:15px;letter-spacing:.12em;margin:0;white-space:nowrap}
+.brand span{font-size:12px;color:var(--muted);white-space:nowrap}
+.icon-btn{width:40px;height:40px;border:1px solid var(--line);border-radius:999px;color:white;background:#141414;cursor:pointer;display:grid;place-items:center}
+.stage{min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding:26px 86px 20px;overflow:hidden}
+.figure{width:100%;height:100%;display:grid;place-items:center;position:relative}
+.main-image{max-width:100%;max-height:100%;object-fit:contain;display:block;border-radius:4px;box-shadow:0 26px 80px rgba(0,0,0,.42);user-select:none;-webkit-user-drag:none}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(15,15,15,.72);color:#fff;font-size:28px;display:grid;place-items:center;cursor:pointer;z-index:3}
+.nav.prev{left:22px} .nav.next{right:22px}
+.caption{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);padding:9px 13px;border-radius:999px;background:rgba(0,0,0,.6);font-size:12px;color:#eee;border:1px solid rgba(255,255,255,.1);pointer-events:none}
+.bottom{border-top:1px solid var(--line);background:#0e0e0e;padding:12px 14px 14px}
+.meta{display:flex;align-items:center;justify-content:space-between;padding:0 6px 10px}
+.counter{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hint{font-size:11px;color:#6f6f6f}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding:1px 2px 4px;scroll-behavior:smooth}
+.thumb{flex:0 0 auto;width:92px;height:62px;border-radius:6px;overflow:hidden;border:1px solid transparent;background:#171717;padding:0;cursor:pointer;opacity:.54}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.active{opacity:1;border-color:#fff}
+@media (max-width:800px){
+header{height:56px;padding:0 14px} .brand span{display:none}
+.stage{padding:14px 12px} .nav{width:42px;height:42px;top:auto;bottom:24px}
+.nav.prev{left:18px} .nav.next{right:18px}
+.caption{bottom:28px;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint{display:none} .thumb{width:76px;height:52px}
+}
+body.fullscreen header,body.fullscreen .bottom{display:none}
+body.fullscreen .app{grid-template-rows:1fr}
+body.fullscreen .stage{padding:12px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><h1>SYNTHESIZER WORKSHOP</h1><span>PHOTO ARCHIVE</span></div>
+  <button class="icon-btn" id="fullscreenBtn" aria-label="전체화면">⛶</button>
+</header>
+<main class="stage" id="stage">
+  <button class="nav prev" id="prevBtn" aria-label="이전 사진">‹</button>
+  <div class="figure">
+    <img id="mainImage" class="main-image" alt="">
+    <div class="caption" id="caption"></div>
+  </div>
+  <button class="nav next" id="nextBtn" aria-label="다음 사진">›</button>
+</main>
+<footer class="bottom">
+  <div class="meta"><div class="counter" id="counter"></div><div class="hint">← → 키 · 스와이프 · F 전체화면</div></div>
+  <div class="thumbs" id="thumbs"></div>
+</footer>
+</div>
+<script>
+const slides=[{src:'images/circuit.png',title:'회로 구성도'},
+{src:'images/workshop01.jpg',title:'워크숍 기록 01'},
+{src:'images/workshop02.jpg',title:'워크숍 기록 02'},
+{src:'images/workshop03.jpg',title:'워크숍 기록 03'},
+{src:'images/workshop04.jpg',title:'워크숍 기록 04'},
+{src:'images/workshop05.jpg',title:'워크숍 기록 05'},
+{src:'images/workshop06.jpg',title:'워크숍 기록 06'},
+{src:'images/workshop07.jpg',title:'워크숍 기록 07'},
+{src:'images/workshop08.jpg',title:'워크숍 기록 08'},
+{src:'images/workshop09.jpg',title:'워크숍 기록 09'},
+{src:'images/workshop10.jpg',title:'워크숍 기록 10'}];
+let index=0;
+const mainImage=document.getElementById('mainImage');
+const caption=document.getElementById('caption');
+const counter=document.getElementById('counter');
+const thumbs=document.getElementById('thumbs');
+const stage=document.getElementById('stage');
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button'); b.className='thumb';
+  const im=document.createElement('img'); im.src=s.src; im.alt=s.title;
+  b.appendChild(im); b.onclick=()=>show(i); thumbs.appendChild(b);
+});
+
+function show(i){
+  index=(i+slides.length)%slides.length;
+  const s=slides[index];
+  mainImage.src=s.src; mainImage.alt=s.title;
+  caption.textContent=s.title;
+  counter.textContent=String(index+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+  [...thumbs.children].forEach((el,n)=>el.classList.toggle('active',n===index));
+  thumbs.children[index].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+const prev=()=>show(index-1), next=()=>show(index+1);
+document.getElementById('prevBtn').onclick=prev;
+document.getElementById('nextBtn').onclick=next;
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft')prev();
+  if(e.key==='ArrowRight')next();
+  if(e.key.toLowerCase()==='f')toggleFullscreen();
+});
+let startX=null;
+stage.addEventListener('touchstart',e=>startX=e.changedTouches[0].clientX,{passive:true});
+stage.addEventListener('touchend',e=>{
+  if(startX===null)return;
+  const dx=e.changedTouches[0].clientX-startX;
+  if(Math.abs(dx)>45) dx>0?prev():next();
+  startX=null;
+},{passive:true});
+
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+document.getElementById('fullscreenBtn').onclick=toggleFullscreen;
+document.addEventListener('fullscreenchange',()=>document.body.classList.toggle('fullscreen',!!document.fullscreenElement));
+
+show(0);
+</script>
+</body>
+</html>
